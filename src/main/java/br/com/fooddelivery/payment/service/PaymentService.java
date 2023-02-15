@@ -7,7 +7,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import br.com.fooddelivery.payment.dto.PaymentDto;
+import br.com.fooddelivery.payment.http.OrderClient;
 import br.com.fooddelivery.payment.model.Payment;
+import br.com.fooddelivery.payment.model.Status;
 import br.com.fooddelivery.payment.repository.PaymentRepository;
 import jakarta.persistence.EntityNotFoundException;
 
@@ -18,11 +20,14 @@ public class PaymentService {
 
 	private ModelMapper mapper;
 
+	private OrderClient orderClient;
+	
 	@Autowired
-	public PaymentService(PaymentRepository repository, ModelMapper modelMapper) {
+	public PaymentService(PaymentRepository repository, ModelMapper modelMapper, OrderClient orderClient) {
 		super();
 		this.repository = repository;
 		this.mapper = modelMapper;
+		this.orderClient = orderClient;
 	}
 	
 	public PaymentDto getById(Long id) {
@@ -51,5 +56,13 @@ public class PaymentService {
 	
 	public void delete(Long id) {
 		repository.deleteById(id);
+	}
+	
+	public void confirmPayment(Long id) {
+		Payment payment = repository.findById(id).orElseThrow(() -> new EntityNotFoundException());
+		
+		payment.setStatus(Status.CONFIRMED);
+		repository.save(payment);
+		orderClient.updatePayment(payment.getId());
 	}
 }
